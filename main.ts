@@ -1,5 +1,5 @@
-const keys_db = new Map<string, string[]>()
-const locationHistory_db = new Map<string, string[]>()
+let keys_db: Record<string, string> = {}
+let locationHistory_db: Record<string, string[]> = {}
 
 const VISUAL_ROUTE = new URLPattern({ pathname: "/" });
 const REGISTER_ROUTE = new URLPattern({ pathname: "/register" });
@@ -11,15 +11,17 @@ const R_404: ResponseInit = { status: 404 };
 const R_204: ResponseInit = { status: 204 };
 
 
-async function handler(req: Request): Promisez<Response> {
+async function handler(req: Request): Promise<Response> {
 
     if (REGISTER_ROUTE.exec(req.url)) {
-        const {userid, key} = await req.json();
+        const {userid, key} = (await req.json()) as {userid: string, key: string};
+        console.log("REGISTER", userid);
         keys_db[userid] = key
         return new Response(null, R_204);
     }
     else if(GETKEY_ROUTE.exec(req.url)) {
         const {userid} = await req.json();
+        console.log("GETKEY", userid);
         const key = keys_db[userid];
         if(key)
             return new Response(key);
@@ -28,6 +30,7 @@ async function handler(req: Request): Promisez<Response> {
     }
     else if(LOCATION_PUBLISH_ROUTE.exec(req.url)) {
         const {recipientUserID, encryptedLocation} = await req.json();
+        console.log("PUBLISH", recipientUserID, encryptedLocation);
         if(!(locationHistory_db[recipientUserID])) {
             locationHistory_db[recipientUserID] = []
         }
@@ -36,6 +39,7 @@ async function handler(req: Request): Promisez<Response> {
     }
     else if(LOCATION_RECIEVE_ROUTE.exec(req.url)) {
         const {userid} = await req.json();
+        console.log("RECEIVE", userid);
         const encryptedLocations = locationHistory_db[userid];
         locationHistory_db[userid] = [];
         if(encryptedLocations)
@@ -43,10 +47,21 @@ async function handler(req: Request): Promisez<Response> {
         else
             return new Response("Location not found", R_404);
     } else if(VISUAL_ROUTE.exec(req.url)) {
-        return new Response("")
+        return new Response("hello world")
     } else {
         return new Response("Path not found", R_404);
     }
 }
 
-Deno.serve(handler);
+const options = {
+  port: 443,
+  cert: await Deno.readTextFile("./api.findfamily.cc.pem"),
+  key: await Deno.readTextFile("./api.findfamily.cc-key.pem"),
+};
+Deno.serve(options, handler);
+
+Deno.cron("clear_database", {hour: {every: 2}}, () => {
+    keys_db = {};
+    locationHistory_db = {};
+    console.log("Cleared database");
+});
