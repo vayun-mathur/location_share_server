@@ -55,10 +55,15 @@ async function handler(req: Request): Promise<Response> {
 
 const options = {
   port: 443,
-  cert: await Deno.readTextFile("./api.findfamily.cc.pem"),
-  key: await Deno.readTextFile("./api.findfamily.cc-key.pem"),
+  cert: await Deno.readTextFile("./certs/fullchain1.pem"),
+  key: await Deno.readTextFile("./certs/privkey1.pem"),
 };
 Deno.serve(options, handler);
+const options_tor = {
+  port: 80,
+  hostname: "127.0.0.1"
+}
+Deno.serve(options_tor, handler);
 
 Deno.cron("clear_database", {hour: {every: 2}}, () => {
     keys_db = {};

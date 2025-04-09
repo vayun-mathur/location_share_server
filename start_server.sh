@@ -1,1 +1,3 @@
-deno run --allow-net --allow-read --unstable-cron main.ts
+#!/bin/bash
+rm my-website.sock
+/root/.deno/bin/deno run -A --unstable-cron main.ts
